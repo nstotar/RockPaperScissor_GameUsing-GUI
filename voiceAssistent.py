@@ -1,172 +1,93 @@
-import speech_recognition as sr
-import pyttsx3
-import datetime
-import wikipedia
-import webbrowser
-import time
-import subprocess
-from ecapture import ecapture as ec
-import wolframalpha
-import requests
-import os
-import json
+import tkinter as tk
+from tkinter import messagebox
+import random
 
-print('Loading your AI personal assistant - geeky')
+class RockPaperScissors:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Rock Paper Scissors - Best of Three")
+        self.root.geometry("400x300")
+        self.root.resizable(False, False)
 
-engine = pyttsx3.init('sapi5')
-voices = engine.getProperty('voices')
-engine.setProperty('voice', 'voices[0].id')
+        self.player_score = 0
+        self.computer_score = 0
+        self.rounds_played = 0
+        self.max_rounds = 3
+
+        # Labels
+        self.title_label = tk.Label(root, text="Rock Paper Scissors", font=("Arial", 16))
+        self.title_label.pack(pady=10)
+
+        self.score_label = tk.Label(root, text=f"Player: {self.player_score} | Computer: {self.computer_score}", font=("Arial", 12))
+        self.score_label.pack(pady=5)
+
+        self.result_label = tk.Label(root, text="", font=("Arial", 12))
+        self.result_label.pack(pady=10)
+
+        # Buttons
+        self.rock_button = tk.Button(root, text="Rock", width=10, command=lambda: self.play("Rock"))
+        self.rock_button.pack(pady=5)
+
+        self.paper_button = tk.Button(root, text="Paper", width=10, command=lambda: self.play("Paper"))
+        self.paper_button.pack(pady=5)
+
+        self.scissors_button = tk.Button(root, text="Scissors", width=10, command=lambda: self.play("Scissors"))
+        self.scissors_button.pack(pady=5)
+
+        self.reset_button = tk.Button(root, text="Reset Game", width=10, command=self.reset_game)
+        self.reset_button.pack(pady=10)
+
+    def play(self, player_choice):
+        if self.rounds_played >= self.max_rounds:
+            return
+
+        choices = ["Rock", "Paper", "Scissors"]
+        computer_choice = random.choice(choices)
+
+        result = self.get_result(player_choice, computer_choice)
+        self.result_label.config(text=f"Player: {player_choice} | Computer: {computer_choice}\n{result}")
+
+        if "win" in result:
+            self.player_score += 1
+        elif "lose" in result:
+            self.computer_score += 1
+
+        self.score_label.config(text=f"Player: {self.player_score} | Computer: {self.computer_score}")
+        self.rounds_played += 1
+
+        if self.rounds_played == self.max_rounds:
+            self.end_game()
+
+    def get_result(self, player, computer):
+        if player == computer:
+            return "It's a tie!"
+        elif (player == "Rock" and computer == "Scissors") or \
+             (player == "Paper" and computer == "Rock") or \
+             (player == "Scissors" and computer == "Paper"):
+            return "You win!"
+        else:
+            return "You lose!"
+
+    def end_game(self):
+        if self.player_score > self.computer_score:
+            winner = "Player"
+        elif self.computer_score > self.player_score:
+            winner = "Computer"
+        else:
+            winner = "It's a tie!"
+
+        messagebox.showinfo("Game Over", f"Game Over!\nWinner: {winner}")
+        self.reset_game()
+
+    def reset_game(self):
+        self.player_score = 0
+        self.computer_score = 0
+        self.rounds_played = 0
+        self.score_label.config(text=f"Player: {self.player_score} | Computer: {self.computer_score}")
+        self.result_label.config(text="")
 
 
-def speak(text):
-    engine.say(text)
-    engine.runAndWait()
-
-
-def wishMe():
-    hour = datetime.datetime.now().hour
-    if hour >= 0 and hour < 12:
-        speak("Hello,Good Morning")
-        print("Hello,Good Morning")
-    elif hour >= 12 and hour < 18:
-        speak("Hello,Good Afternoon")
-        print("Hello,Good Afternoon")
-    else:
-        speak("Hello,Good Evening")
-        print("Hello,Good Evening")
-
-
-def takeCommand():
-    r = sr.Recognizer()
-    with sr.Microphone() as source:
-        print("Listening...")
-        audio = r.listen(source)
-
-        try:
-            statement = r.recognize_google(audio, language='en-in')
-            print(f"user said:{statement}\n")
-
-        except Exception as e:
-            speak("Pardon me, please say that again")
-            return "None"
-        return statement
-
-
-speak("Loading your AI personal assistant G-One")
-wishMe()
-
-if __name__ == '__main__':
-
-    while True:
-        speak("Tell me how can I help you now?")
-        statement = takeCommand().lower()
-        if statement == 0:
-            continue
-
-        if "good bye" in statement or "ok bye" in statement or "stop" in statement:
-            speak('your personal assistant G-one is shutting down,Good bye')
-            print('your personal assistant G-one is shutting down,Good bye')
-            break
-
-        if 'wikipedia' in statement:
-            speak('Searching Wikipedia...')
-            statement = statement.replace("wikipedia", "")
-            results = wikipedia.summary(statement, sentences=3)
-            speak("According to Wikipedia")
-            print(results)
-            speak(results)
-
-        elif 'open youtube' in statement:
-            webbrowser.open_new_tab("https://www.youtube.com")
-            speak("youtube is open now")
-            time.sleep(5)
-
-        elif 'open google' in statement:
-            webbrowser.open_new_tab("https://www.google.com")
-            speak("Google chrome is open now")
-            time.sleep(5)
-
-        elif 'open gmail' in statement:
-            webbrowser.open_new_tab("gmail.com")
-            speak("Google Mail open now")
-            time.sleep(5)
-
-        elif "weather" in statement:
-            api_key = "8ef61edict1c576d65d836254e11ea420"
-            base_url = "https://api.openweathermap.org/data/2.5/weather?"
-            speak("whats the city name")
-            city_name = takeCommand()
-            complete_url = base_url + "applied=" + api_key + "&q=" + city_name
-            response = requests.get(complete_url)
-            x = response.json()
-            if x["cod"] != "404":
-                y = x["main"]
-                current_temperature = y["temp"]
-                current_humidity = y["humidity"]
-                z = x["weather"]
-                weather_description = z[0]["description"]
-                speak(" Temperature in kelvin unit is " +
-                      str(current_temperature) +
-                      "\n humidity in percentage is " +
-                      str(current_humidity) +
-                      "\n description  " +
-                      str(weather_description))
-                print(" Temperature in kelvin unit = " +
-                      str(current_temperature) +
-                      "\n humidity (in percentage) = " +
-                      str(current_humidity) +
-                      "\n description = " +
-                      str(weather_description))
-
-            else:
-                speak(" City Not Found ")
-
-        elif 'time' in statement:
-            strTime = datetime.datetime.now().strftime("%H:%M:%S")
-            speak(f"the time is {strTime}")
-
-        elif 'who are you' in statement or 'what can you do' in statement:
-            speak('I am G-one version 1 point O your personal assistant. I am programmed to minor tasks like'
-                  'opening youtube,google chrome,gmail and stackoverflow ,predict time,take a photo,search wikipedia,'
-                  'predict weather '
-                  'in different cities , get top headline news from times of india and you can ask me computational '
-                  'or geographical questions too!')
-
-        elif "who made you" in statement or "who created you" in statement or "who discovered you" in statement:
-            speak("I was built by NISHANT TOTAR")
-            print("I was built by NISHANT TOTAR")
-
-        elif "open stackoverflow" in statement:
-            webbrowser.open_new_tab("https://stackoverflow.com/login")
-            speak("Here is stackoverflow")
-
-        elif 'news' in statement:
-            news = webbrowser.open_new_tab(
-                "https://timesofindia.indiatimes.com/home/headlines")
-            speak('Here are some headlines from the Times of India,Happy reading')
-            time.sleep(6)
-
-        elif "camera" in statement or "take a photo" in statement:
-            ec.capture(0, "rob camera", "img.jpg")
-
-        elif 'search' in statement:
-            statement = statement.replace("search", "")
-            webbrowser.open_new_tab(statement)
-            time.sleep(5)
-
-        elif 'ask' in statement:
-            speak('I can answer to computational and geographical questions and what question do you want to ask now')
-            question = takeCommand()
-            app_id = "R2K75H-7LALR35X"
-            client = wolframalpha.Client('R2K75H-7LALR35X')
-            res = client.query(question)
-            answer = next(res.results).text
-            speak(answer)
-            print(answer)
-
-        elif "log off" in statement or "sign out" in statement:
-            speak(
-                "Ok , your pc will log off in 10 sec make sure you exit from all applications")
-            subprocess.call(["shutdown", "/l"])
-
-time.sleep(3)
+if __name__ == "__main__":
+    root = tk.Tk()
+    game = RockPaperScissors(root)
+    root.mainloop()
